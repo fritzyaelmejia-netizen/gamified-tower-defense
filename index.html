@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>A Gamified Logic-Driven Tower Defense Platform</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -180,7 +181,7 @@
 
     <header>
         <h1>A Gamified Logic-Driven Tower Defense Platform</h1>
-        <p>Protect your mainframe by scripting conditional logic commands[cite: 2]!</p>
+        <p>Protect your mainframe by scripting conditional logic commands!</p>
     </header>
 
     <div class="dashboard-container">
@@ -203,7 +204,7 @@
         <div class="control-panel">
             <h3>Logic Console</h3>
             
-            <label for="difficultySelect">Difficulty Tier[cite: 2]:</label>
+            <label for="difficultySelect">Difficulty Tier:</label>
             <select id="difficultySelect" onchange="updateDifficulty()">
                 <option value="easy">Easy (Guided Explanations)</option>
                 <option value="medium">Medium (Partial Hints)</option>
@@ -218,20 +219,17 @@
             <button class="execute-btn" onclick="executeCode()">Execute & Compile Script</button>
             
             <div class="hint-box" id="hintBox">
-                <strong>Hint:</strong> Use conditional statements like <code>if (bug.distance <= 200)</code> to command the tower to fire[cite: 2]!
+                <strong>Hint:</strong> Use conditional statements like <code>if (bug.distance <= 200)</code> to command the tower to fire!
             </div>
 
             <div class="log-box" id="logBox">> System initialized. Waiting for logic script execution...</div>
         </div>
     </div>
 
-    <!-- Firebase / Supabase Integration Placeholder Script -->
     <script>
-        // NOTE: Replace below configuration with your live Firebase or Supabase keys for Vercel deployment
-        const dbConfig = {
-            projectId: "your-capstone-project-db",
-            status: "ready"
-        };
+        const SUPABASE_URL = "https://qtpbhjfkpthrqbxurjyi.supabase.co"; //[cite: 4]
+        const SUPABASE_PUBLISHABLE_KEY = "YOUR_COPIED_PUBLISHABLE_KEY"; //[cite: 5]
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
         let bugPos = 0;
         let mainframeHp = 100;
@@ -249,7 +247,6 @@
                     bugPos += 1.5;
                     bug.style.left = bugPos + 'px';
                 } else {
-                    // Breach
                     if (mainframeHp > 0) {
                         mainframeHp -= 20;
                         document.getElementById('hp').innerText = mainframeHp;
@@ -259,7 +256,7 @@
                             gameRunning = false;
                         }
                     }
-                    bugPos = 0; // Reset bug position
+                    bugPos = 0;
                 }
             }, 50);
         }
@@ -269,12 +266,12 @@
             const hintBox = document.getElementById('hintBox');
             if (tier === 'easy') {
                 hintBox.style.display = 'block';
-                hintBox.innerHTML = "<strong>Easy Mode Hint:</strong> Check distance parameters and ensure your <code>tower.fire()</code> syntax is inside the block[cite: 2].";
+                hintBox.innerHTML = "<strong>Easy Mode Hint:</strong> Check distance parameters and ensure your <code>tower.fire()</code> syntax is inside the block.";
             } else if (tier === 'medium') {
                 hintBox.style.display = 'block';
-                hintBox.innerHTML = "<strong>Medium Mode Hint:</strong> Logical evaluation requires correct variable targets (e.g., <code>bug.distance</code>)[cite: 2].";
+                hintBox.innerHTML = "<strong>Medium Mode Hint:</strong> Logical evaluation requires correct variable targets (e.g., <code>bug.distance</code>).";
             } else {
-                hintBox.style.display = 'none'; // Hard mode has no scaffolding hints[cite: 2]
+                hintBox.style.display = 'none';
             }
         }
 
@@ -287,30 +284,45 @@
             const code = document.getElementById('codeScript').value.trim();
             
             try {
-                // Simulated real-time lexical and syntax parser
                 if (code.includes("tower.fire()") && code.includes("if")) {
                     logMessage("✔️ Compilation Successful: Syntax valid. Tower executed attack command.");
                     score += 1;
                     document.getElementById('score').innerText = score;
                     
-                    // Reset bug position upon successful hit
                     bugPos = 0;
                     document.getElementById('bug').style.left = '0px';
                     
-                    // Simulate score data synchronization to database
                     syncScoreToCloud(score);
                 } else {
-                    logMessage("❌ Syntax/Logic Error: Invalid statement structure. Make sure to use proper conditional statements[cite: 2].");
+                    logMessage("❌ Syntax/Logic Error: Invalid statement structure. Make sure to use proper conditional statements.");
                 }
             } catch (err) {
                 logMessage("Runtime Error: " + err.message);
             }
         }
 
-        function syncScoreToCloud(currentScore) {
-            // Placeholder for Firebase / Supabase DB call
-            document.getElementById('dbStatus').innerText = "Synced (Cloud DB)";
-            document.getElementById('dbStatus').style.color = "#22c55e";
+        async function syncScoreToCloud(currentScore) {
+            const tier = document.getElementById('difficultySelect').value;
+            const scriptText = document.getElementById('codeScript').value;
+
+            const { error } = await supabaseClient
+                .from('game_logs')
+                .insert([{
+                    difficulty: tier,
+                    wave: wave,
+                    bugs_eliminated: currentScore,
+                    last_script: scriptText
+                }]);
+
+            const statusEl = document.getElementById('dbStatus');
+            if (error) {
+                statusEl.innerText = "Sync Error";
+                statusEl.style.color = "#ef4444";
+                logMessage("❌ Supabase Error: " + error.message);
+            } else {
+                statusEl.innerText = "Synced (Supabase)";
+                statusEl.style.color = "#22c55e";
+            }
         }
 
         function logMessage(msg) {
@@ -319,7 +331,6 @@
             logBox.scrollTop = logBox.scrollHeight;
         }
 
-        // Initialize simulation on load
         window.onload = () => {
             startSimulation();
         };
